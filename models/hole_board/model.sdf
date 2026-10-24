@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="hole_board">
+    <!-- 床に固定するための静的モデル -->
+    <static>true</static>
+    <link name="link">
+      <!-- 底板（ペグが突き抜けないようにする） -->
+      <collision name="bottom_collision">
+        <pose>0 0 0.01 0 0 0</pose>
+        <geometry><box><size>0.1 0.1 0.02</size></box></geometry>
+      </collision>
+      <visual name="bottom_visual">
+        <pose>0 0 0.01 0 0 0</pose>
+        <geometry><box><size>0.1 0.1 0.02</size></box></geometry>
+        <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
+      </visual>
+
+      <!-- 前方の壁 -->
+      <collision name="front_collision">
+        <pose>0 0.035 0.03 0 0 0</pose>
+        <geometry><box><size>0.1 0.03 0.04</size></box></geometry>
+      </collision>
+      <visual name="front_visual">
+        <pose>0 0.035 0.03 0 0 0</pose>
+        <geometry><box><size>0.1 0.03 0.04</size></box></geometry>
+        <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
+      </visual>
+
+      <!-- 後方の壁 -->
+      <collision name="back_collision">
+        <pose>0 -0.035 0.03 0 0 0</pose>
+        <geometry><box><size>0.1 0.03 0.04</size></box></geometry>
+      </collision>
+      <visual name="back_visual">
+        <pose>0 -0.035 0.03 0 0 0</pose>
+        <geometry><box><size>0.1 0.03 0.04</size></box></geometry>
+        <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
+      </visual>
+
+      <!-- 左側の壁 -->
+      <collision name="left_collision">
+        <pose>-0.035 0 0.03 0 0 0</pose>
+        <geometry><box><size>0.03 0.04 0.04</size></box></geometry>
+      </collision>
+      <visual name="left_visual">
+        <pose>-0.035 0 0.03 0 0 0</pose>
+        <geometry><box><size>0.03 0.04 0.04</size></box></geometry>
+        <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
+      </visual>
+
+      <!-- 右側の壁 -->
+      <collision name="right_collision">
+        <pose>0.035 0 0.03 0 0 0</pose>
+        <geometry><box><size>0.03 0.04 0.04</size></box></geometry>
+      </collision>
+      <visual name="right_visual">
+        <pose>0.035 0 0.03 0 0 0</pose>
+        <geometry><box><size>0.03 0.04 0.04</size></box></geometry>
+        <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

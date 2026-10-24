@@ -1,0 +1,92 @@
+{
+  "status": "SUCCESS",
+  "aborted": false,
+  "motion_mode": "fast",
+  "max_steps": 193,
+  "target_color": "green",
+  "elapsed_time_sec": 103.77,
+  "cycle_hz": 1.9,
+  "measured_peg_tilt_deg": 25.93,
+  "calibrated_dy_mm": 36.46,
+  "calibrated_hole_yaw_deg": -10.52,
+  "summary": "ターゲット色 (GREEN) ペグのカメラ実測座標 (X=0.191m, Y=+0.101m) の二重把持確認（グリッパー角度差＆Z方向リフト）および穴挿入ミッション完遂 [FASTモード: 193 steps, 所要時間: 103.77s, アプローチ前傾斜: 25.9° (ΔY=+36.5mm)]",
+  "detected_peg_x": 0.19069942660789166,
+  "detected_peg_y": 0.10059311970978582,
+  "detected_peg_r": 0.21560437621144418,
+  "detected_peg_box": [
+    305,
+    121,
+    36,
+    50
+  ],
+  "detected_peg_cxcy": [
+    323,
+    139
+  ],
+  "detected_hole_box": [
+    373,
+    78,
+    120,
+    119
+  ],
+  "detected_hole_cxcy": [
+    432,
+    136
+  ],
+  "distractor_pegs": [
+    {
+      "color": "red",
+      "x_base": 0.1491130833690073,
+      "y_base": -0.07449431738150543,
+      "r_base": 0.1666856771109893,
+      "box": [
+        487,
+        172,
+        65,
+        40
+      ],
+      "cxcy": [
+        533,
+        189
+      ]
+    }
+  ],
+  "retry_count": 1,
+  "max_retries": 2,
+  "grasp_details": {
+    "is_grasped": true,
+    "grip_angle_ok": true,
+    "z_lift_ok": true,
+    "cmd_grip_rad": 0.4199967943057569,
+    "meas_grip_rad": 0.328304252531054,
+    "grip_diff_rad": 0.09169254177470293,
+    "cmd_grip_deg": 24.06404372274404,
+    "meas_grip_deg": 18.81044806622657,
+    "grip_diff_deg": 5.2535956565174695,
+    "init_side_bottom_y": 185,
+    "cur_side_bottom_y": 165,
+    "init_side_top_y": 126,
+    "cur_side_top_y": 108,
+    "z_lift_px": 20,
+    "reasons": []
+  },
+  "hole_in_one_detected": false,
+  "insertion_jam_count": 0,
+  "push_limiter": {
+    "fixed_claw_standoff_mm": 5.0,
+    "fixed_claw_push_mm": -0.8,
+    "grasp_backoff_mm": 0.8,
+    "max_tilt_delta_deg": 0.0,
+    "tilt_threshold_deg": 4.0,
+    "adaptive_tilt_weight": 1.0,
+    "adaptive_meas_tilt_deg": 25.93,
+    "adaptive_d_bot_mm": 40.0,
+    "adaptive_hole_yaw_deg": -11.54,
+    "hole_hover_trim_deg": 0.0,
+    "bank_tap_calibrated": true,
+    "bank_tap_dx_mm": 8.06,
+    "bank_tap_dy_mm": 36.46,
+    "bank_tap_d_bot_mm": 36.46,
+    "calibrated_hole_yaw_deg": -10.52
+  }
+}
