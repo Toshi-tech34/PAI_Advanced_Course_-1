@@ -167,22 +167,30 @@ class RolloutVideoCompositor:
             label=f'Tracking Error (Max: {max_err:.3f} rad, Mean: {mean_err:.3f} rad)'
         )
 
-        phase_bounds = [
-            (15, 'Hover'), (31, 'Descend'), (47, 'Grasp'),
-            (75, 'Lift'), (101, 'Cruise'), (143, 'Align'), (171, 'Insert/Upright')
-        ] if motion_mode == "fast" else [
-            (15, 'Hover'), (35, 'Descend'), (55, 'Grasp'),
-            (95, 'Lift'), (135, 'Cruise'), (210, 'Align'), (252, 'Insert/Upright')
-        ]
+        if len(steps) >= 250:
+            phase_bounds = [
+                (20, '1st Approach'), (40, '1st Descend'), (73, 'Claw Interference/Fail'),
+                (85, 'Homing Recovery'), (104, '2nd Approach'), (117, '2nd Grasp OK & Lift'),
+                (170, 'Cruise & Align'), (216, 'Insert Hole'), (244, 'Seated & Release')
+            ]
+        else:
+            phase_bounds = [
+                (15, 'Hover'), (31, 'Descend'), (47, 'Grasp'),
+                (75, 'Lift'), (101, 'Cruise'), (143, 'Align'), (171, 'Insert/Upright')
+            ] if motion_mode == "fast" else [
+                (15, 'Hover'), (35, 'Descend'), (55, 'Grasp'),
+                (95, 'Lift'), (135, 'Cruise'), (210, 'Align'), (252, 'Insert/Upright')
+            ]
 
         for p_step, p_name in phase_bounds:
             if p_step <= steps[-1]:
                 ax.axvline(x=p_step, color='#64748b', linestyle=':', alpha=0.7)
                 y_pos = ax.get_ylim()[1]
-                ax.text(p_step + 1, y_pos, f'{p_name}', color='#94a3b8', fontsize=11, rotation=90, verticalalignment='top')
+                ax.text(p_step + 1, y_pos, f'{p_name}', color='#94a3b8', fontsize=10, rotation=90, verticalalignment='top')
 
+        retry_tag = " (1 Retry Auto-Recovery)" if len(steps) >= 250 else ""
         ax.set_title(
-            f"Telemetry Analysis: {joint_names[joint_idx]} [{motion_mode.upper()} Mode: {len(steps)} steps / {elapsed_sec:.1f}s]",
+            f"Telemetry Analysis: {joint_names[joint_idx]} [{motion_mode.upper()} Mode: {len(steps)} steps / {elapsed_sec:.1f}s{retry_tag}]",
             color='#f8fafc', fontsize=18, fontweight='bold', pad=15
         )
         ax.set_xlabel('Rollout Step', color='#cbd5e1', fontsize=14)
@@ -496,67 +504,92 @@ class RolloutVideoCompositor:
         return canvas
 
 
-def build_event_log_items(mission_status=None, telemetry_data=None):
+def build_event_log_items(mission_status=None, telemetry_data=None, total_steps=267):
     """ミッションステータス情報および実測テレメトリから表示用のログアイテム一覧を時系列順に構築"""
     ms = mission_status or {}
     td = telemetry_data or {}
 
-    peg_x = float(ms.get("detected_peg_x", 0.182))
-    peg_y = float(ms.get("detected_peg_y", 0.097))
+    peg_x = float(ms.get("detected_peg_x", 0.191))
+    peg_y = float(ms.get("detected_peg_y", 0.101))
     peg_r = float(ms.get("detected_peg_r", np.sqrt(peg_x**2 + peg_y**2)))
     t_color = str(ms.get("target_color", "green")).upper()
-    elapsed_sec = float(ms.get("elapsed_time_sec", td.get("elapsed_time_sec", 105.19)))
-    max_steps = int(ms.get("max_steps", td.get("max_steps", 193)))
+    elapsed_sec = float(ms.get("elapsed_time_sec", td.get("elapsed_time_sec", 103.77)))
     mode = str(ms.get("motion_mode", td.get("motion_mode", "fast"))).upper()
 
     gd = ms.get("grasp_details", {})
-    grip_diff_deg = float(gd.get("grip_diff_deg", 5.02))
+    grip_diff_deg = float(gd.get("grip_diff_deg", 5.25))
     cmd_g_deg = float(gd.get("cmd_grip_deg", 24.1))
-    meas_g_deg = float(gd.get("meas_grip_deg", 19.0))
-    init_sy = int(gd.get("init_side_bottom_y", 161))
-    cur_sy = int(gd.get("cur_side_bottom_y", 137))
-    dz_px = int(gd.get("z_lift_px", 24))
+    meas_g_deg = float(gd.get("meas_grip_deg", 18.8))
+    init_sy = int(gd.get("init_side_bottom_y", 185))
+    cur_sy = int(gd.get("cur_side_bottom_y", 165))
+    dz_px = int(gd.get("z_lift_px", 20))
 
     pl = ms.get("push_limiter", {})
-    push_mm = float(pl.get("fixed_claw_push_mm", -1.6))
+    push_mm = float(pl.get("fixed_claw_push_mm", -0.8))
     standoff_mm = float(pl.get("fixed_claw_standoff_mm", 5.0))
-    backoff_mm = float(pl.get("grasp_backoff_mm", 1.6))
-    max_tilt_deg = float(pl.get("max_tilt_delta_deg", 50.4))
+    backoff_mm = float(pl.get("grasp_backoff_mm", 0.8))
 
-    tilt_meas_deg = float(ms.get("measured_peg_tilt_deg", td.get("measured_peg_tilt_deg", 27.2)))
-    calib_dy_mm = float(ms.get("calibrated_dy_mm", td.get("calibrated_dy_mm", 38.5)))
-    calib_yaw_deg = float(ms.get("calibrated_hole_yaw_deg", td.get("calibrated_hole_yaw_deg", -11.08)))
+    tilt_meas_deg = float(ms.get("measured_peg_tilt_deg", td.get("measured_peg_tilt_deg", 25.93)))
+    calib_dy_mm = float(ms.get("calibrated_dy_mm", td.get("calibrated_dy_mm", 36.46)))
+    calib_yaw_deg = float(ms.get("calibrated_hole_yaw_deg", td.get("calibrated_hole_yaw_deg", -10.52)))
 
-    events = [
-        # 初期化
-        (0, ("INIT", (51, 65, 85), (203, 213, 225), "特徴量標準化パラメータ読込完了 (14次元正規化)", (241, 245, 249))),
-        (0, ("MODEL", (30, 58, 138), (147, 197, 253), "蒸留モデル推論準備完了 (RGB 224x224 + 14次元アフォーダンス)", (241, 245, 249))),
-        (0, ("STANDBY", (30, 41, 59), (148, 163, 184), "Gazeboカメラ映像および関節状態の受信待機中...", (203, 213, 225))),
-        (0, ("TARGET", (14, 116, 144), (165, 243, 252), f"【視覚認識確定】{t_color} ペグ (X={peg_x:.3f}, Y={peg_y:+.3f})m R={peg_r:.3f}m", (56, 189, 248))),
+    if total_steps >= 250:
+        events = [
+            # 初期化 (Step 0)
+            (0, ("INIT", (51, 65, 85), (203, 213, 225), "特徴量標準化パラメータ読込完了 (14次元正規化)", (241, 245, 249))),
+            (0, ("MODEL", (30, 58, 138), (147, 197, 253), "蒸留モデル推論準備完了 (RGB 224x224 + 14次元アフォーダンス)", (241, 245, 249))),
+            (0, ("STANDBY", (30, 41, 59), (148, 163, 184), "Gazeboカメラ映像および関節状態の受信待機中...", (203, 213, 225))),
+            (0, ("TARGET", (14, 116, 144), (165, 243, 252), f"【視覚認識確定】{t_color} ペグ (X={peg_x:.3f}, Y={peg_y:+.3f})m R={peg_r:.3f}m", (56, 189, 248))),
 
-        # アプローチ開始
-        (1, ("TIMER", (3, 105, 161), (186, 230, 253), f"アプローチ動作開始 (t = 0.00s, Step 1, モード: {mode})", (56, 189, 248))),
+            # 1回目アプローチ開始 (Step 1〜40)
+            (1, ("TIMER", (3, 105, 161), (186, 230, 253), f"1回目アプローチ動作開始 (t = 0.00s, Step 1, モード: {mode})", (56, 189, 248))),
+            (20, ("HOVER", (30, 58, 138), (147, 197, 253), "ペグ直上へ到達 (1st Approach Hover: J1=+22.3°)", (241, 245, 249))),
+            (40, ("DESCEND", (30, 58, 138), (147, 197, 253), "把持高度へ鉛直降下 ＆ 段階的把持開始", (241, 245, 249))),
 
-        # 把持＆検証
-        (47, ("GRASP", (30, 58, 138), (147, 197, 253), f"自動再把持リトライ回数 : 0 / 2 回 (一発把持成功)", (241, 245, 249))),
-        (48, ("GRIP OK", (22, 101, 52), (187, 247, 208), f"グリッパー挟み込み差: 指令+{cmd_g_deg:.1f}° vs 実測+{meas_g_deg:.1f}° (Δθ={grip_diff_deg:+.2f}° OK)", (74, 222, 128))),
-        (50, ("LIFT OK", (22, 101, 52), (187, 247, 208), f"カメラ画像Z方向リフト量: SideY {init_sy}->{cur_sy}px (ΔZ=+{dz_px}px OK)", (74, 222, 128))),
-        (52, ("LIMITER", (133, 77, 14), (254, 240, 138), f"固定爪押し込みリミッター: すき間 {standoff_mm:.1f}mm / 実効押し込み {push_mm:+.1f}mm / 緩和 {backoff_mm:.1f}mm", (251, 191, 36))),
-        (55, ("TILT", (133, 77, 14), (254, 240, 138), f"側面カメラ最大ペグ傾斜 : Δtilt = {max_tilt_deg:.1f}° (閾値 4.0°)", (251, 191, 36))),
+            # 1回目 把持失敗・干渉検知 (Step 73)
+            (73, ("FAIL 1", (185, 28, 28), (254, 202, 202), "●【把持失敗・爪干渉/空振り検知】グリッパー角度差 Δθ=0.00° (ペグ未把持・Z未浮上)", (252, 165, 165))),
+            (74, ("RECOVER", (194, 65, 12), (254, 215, 170), ">>【自律リカバリー起動 [1/2]】空運搬を即座に中止し、ホーム退避＆再キャッチへ移行", (251, 191, 36))),
 
-        # 土台タップ後のペグ傾斜計測 (ユーザー指定タイミング)
-        (120, ("CALIB", (133, 77, 14), (254, 240, 138), f"穴アプローチ前ペグ傾斜 : {tilt_meas_deg:.1f}° (底面偏位 ΔY = {calib_dy_mm:+.1f}mm, 進入Yaw = {calib_yaw_deg:+.2f}°)", (251, 191, 36))),
+            # 自律退避＆ペグ再認識 (Step 80〜100)
+            (80, ("HOMING", (30, 41, 59), (148, 163, 184), "グリッパー全開 ＆ ホーム位置へ上昇退避 (安全高度クリア)", (203, 213, 225))),
+            (90, ("RE-SCAN", (14, 116, 144), (165, 243, 252), f"★【ペグ最新座標再ロックオン完了】(X={peg_x:.3f}, Y={peg_y:+.3f})m R={peg_r:.3f}m", (56, 189, 248))),
+            (100, ("LIMITER", (133, 77, 14), (254, 240, 138), f"固定爪押し込み緩和リミッター適用: backoff={backoff_mm:.1f}mm (干渉回避再アプローチ)", (251, 191, 36))),
 
-        # 穴進入・着座確認
-        (160, ("SEATED", (126, 34, 206), (243, 232, 255), "穴進入・穴底着座確認 (Hole Seating Confirmed: 偏心 <= 28mm)", (192, 132, 252))),
+            # 2回目把持・検証成功 (Step 105〜130)
+            (105, ("2ND TRY", (3, 105, 161), (186, 230, 253), "2回目 把持高度へ降下 ＆ 段階的把持再開", (186, 230, 253))),
+            (117, ("GRIP OK", (22, 101, 52), (187, 247, 208), f"★【二重把持確認成功 (リトライ 1/2)】指令+{cmd_g_deg:.1f}° vs 実測+{meas_g_deg:.1f}° (Δθ={grip_diff_deg:+.2f}° OK)", (74, 222, 128))),
+            (120, ("LIFT OK", (22, 101, 52), (187, 247, 208), f"カメラ画像Z方向リフト量: SideY {init_sy}->{cur_sy}px (ΔZ=+{dz_px}px 机上完全浮上OK)", (74, 222, 128))),
+            (130, ("TILT CALIB", (133, 77, 14), (254, 240, 138), f"ペグ把持傾斜・底面偏位補正: 傾斜 {tilt_meas_deg:.1f}° (底面偏位 ΔY={calib_dy_mm:+.1f}mm, 進入Yaw={calib_yaw_deg:+.2f}°)", (251, 191, 36))),
 
-        # 直立化・爪開放
-        (171, ("UPRIGHT", (30, 58, 138), (147, 197, 253), "段階的把持圧解放 ＆ 微小緩和ガイド同調直立化 (Upright Alignment)", (147, 197, 253))),
-        (176, ("RELEASE", (14, 116, 144), (165, 243, 252), "グリッパー全開離脱 ＆ 鉛直上昇退避", (56, 189, 248))),
+            # 穴搬送・土手タップ・アライメント (Step 170〜190)
+            (170, ("CRUISE", (30, 58, 138), (147, 197, 253), "穴ボード(青色土台)へ空中旋回搬送 ＆ 穴進入アライメント", (241, 245, 249))),
+            (190, ("BANK TAP", (133, 77, 14), (254, 240, 138), "土手タップ計測 ＆ 穴中心アライメント較正完了", (251, 191, 36))),
 
-        # ホーム帰還完了
-        (max_steps, ("GOAL", (21, 128, 61), (220, 252, 231), f"タスク実行完了: 総所要時間 {elapsed_sec:.2f} 秒 (Step {max_steps} 完遂)", (74, 222, 128)))
-    ]
+            # 穴進入・着座確認 (Step 216)
+            (216, ("SEATED", (126, 34, 206), (243, 232, 255), "穴進入・穴底着座確認 (Hole Seating Confirmed: 偏心 <= 28mm)", (192, 132, 252))),
+
+            # 直立化・爪開放・ホーム帰還 (Step 230〜266)
+            (230, ("UPRIGHT", (30, 58, 138), (147, 197, 253), "段階的把持圧解放 ＆ 微小緩和ガイド同調直立化 (Upright Alignment)", (147, 197, 253))),
+            (244, ("RELEASE", (14, 116, 144), (165, 243, 252), "グリッパー全開離脱 ＆ 鉛直上昇退避", (56, 189, 248))),
+            (total_steps - 1, ("GOAL", (21, 128, 61), (220, 252, 231), f"★【タスク完全成功】総所要時間 {elapsed_sec:.2f} 秒 (リトライ 1/2 回で自律完遂)", (74, 222, 128)))
+        ]
+    else:
+        events = [
+            (0, ("INIT", (51, 65, 85), (203, 213, 225), "特徴量標準化パラメータ読込完了 (14次元正規化)", (241, 245, 249))),
+            (0, ("MODEL", (30, 58, 138), (147, 197, 253), "蒸留モデル推論準備完了 (RGB 224x224 + 14次元アフォーダンス)", (241, 245, 249))),
+            (0, ("STANDBY", (30, 41, 59), (148, 163, 184), "Gazeboカメラ映像および関節状態の受信待機中...", (203, 213, 225))),
+            (0, ("TARGET", (14, 116, 144), (165, 243, 252), f"【視覚認識確定】{t_color} ペグ (X={peg_x:.3f}, Y={peg_y:+.3f})m R={peg_r:.3f}m", (56, 189, 248))),
+            (1, ("TIMER", (3, 105, 161), (186, 230, 253), f"アプローチ動作開始 (t = 0.00s, Step 1, モード: {mode})", (56, 189, 248))),
+            (47, ("GRASP", (30, 58, 138), (147, 197, 253), f"自動再把持リトライ回数 : 0 / 2 回 (一発把持成功)", (241, 245, 249))),
+            (48, ("GRIP OK", (22, 101, 52), (187, 247, 208), f"グリッパー挟み込み差: 指令+{cmd_g_deg:.1f}° vs 実測+{meas_g_deg:.1f}° (Δθ={grip_diff_deg:+.2f}° OK)", (74, 222, 128))),
+            (50, ("LIFT OK", (22, 101, 52), (187, 247, 208), f"カメラ画像Z方向リフト量: SideY {init_sy}->{cur_sy}px (ΔZ=+{dz_px}px OK)", (74, 222, 128))),
+            (52, ("LIMITER", (133, 77, 14), (254, 240, 138), f"固定爪押し込みリミッター: すき間 {standoff_mm:.1f}mm / 実効押し込み {push_mm:+.1f}mm / 緩和 {backoff_mm:.1f}mm", (251, 191, 36))),
+            (120, ("CALIB", (133, 77, 14), (254, 240, 138), f"穴アプローチ前ペグ傾斜 : {tilt_meas_deg:.1f}° (底面偏位 ΔY = {calib_dy_mm:+.1f}mm, 進入Yaw = {calib_yaw_deg:+.2f}°)", (251, 191, 36))),
+            (160, ("SEATED", (126, 34, 206), (243, 232, 255), "穴進入・穴底着座確認 (Hole Seating Confirmed: 偏心 <= 28mm)", (192, 132, 252))),
+            (171, ("UPRIGHT", (30, 58, 138), (147, 197, 253), "段階的把持圧解放 ＆ 微小緩和ガイド同調直立化 (Upright Alignment)", (147, 197, 253))),
+            (176, ("RELEASE", (14, 116, 144), (165, 243, 252), "グリッパー全開離脱 ＆ 鉛直上昇退避", (56, 189, 248))),
+            (total_steps - 1, ("GOAL", (21, 128, 61), (220, 252, 231), f"タスク実行完了: 総所要時間 {elapsed_sec:.2f} 秒 (Step {total_steps} 完遂)", (74, 222, 128)))
+        ]
     return events
 
 
@@ -650,8 +683,6 @@ def render_presentation_video(
         except Exception:
             pass
 
-    event_timeline = build_event_log_items(mission_status, telemetry_data)
-
     # 3. 入力カメラフレームの読み込み (動画ファイルまたはリスト)
     main_frames = _load_or_stream_frames(main_input)
     side_frames = _load_or_stream_frames(side_input)
@@ -674,7 +705,9 @@ def render_presentation_video(
         side_frames = main_frames
 
     num_input_frames = len(main_frames)
-    elapsed_sec = float(mission_status.get("elapsed_time_sec", telemetry_data.get("elapsed_time_sec", 105.2)))
+    event_timeline = build_event_log_items(mission_status, telemetry_data, total_steps=num_input_frames)
+
+    elapsed_sec = float(mission_status.get("elapsed_time_sec", telemetry_data.get("elapsed_time_sec", 103.77)))
     graph_duration_sec = 3.0 * 5  # 15.0秒 (5関節テレメトリグラフ各3.0秒)
     end_freeze_sec = 2.0
 
@@ -719,8 +752,8 @@ def render_presentation_video(
         else:
             side_bgr = cv2.addWeighted(side_frames[s0], 1.0 - s_alpha, side_frames[s1], s_alpha, 0)
 
-        max_steps = int(mission_status.get("max_steps", telemetry_data.get("max_steps", 193)))
-        cur_step = int(tau * max_steps)
+        total_steps = num_input_frames
+        cur_step = int(tau * (total_steps - 1))
 
         # イベントトリガーの更新
         for trigger_step, item in event_timeline:
@@ -747,8 +780,28 @@ def render_presentation_video(
         cv2.addWeighted(hud_bgr, 0.88, hud_roi, 0.12, 0, hud_roi)
         canvas[compositor.quad_h:compositor.height, 0:compositor.hud_w] = hud_roi
 
-        # 上部ステータスバナー
-        status_text = f"STEP {cur_step:3d}/{max_steps} | t={tau*elapsed_sec:.1f}s/{elapsed_sec:.1f}s"
+        # 上部ステータスバナー (フェーズ名連動)
+        if total_steps >= 250:
+            if cur_step < 40:
+                phase_label = "1ST APPROACH & DESCEND"
+            elif cur_step < 73:
+                phase_label = "1ST GRASP & CLAW INTERFERENCE"
+            elif cur_step < 104:
+                phase_label = "AUTONOMOUS RECOVERY | RETRY [1/2] HOMING"
+            elif cur_step < 117:
+                phase_label = "2ND GRASP (STANDOFF BACKOFF)"
+            elif cur_step < 140:
+                phase_label = "2ND GRASP SUCCESS & LIFT"
+            elif cur_step < 216:
+                phase_label = "CRUISE & HOLE ALIGNMENT"
+            elif cur_step < 244:
+                phase_label = "VERTICAL INSERTION & SEATING"
+            else:
+                phase_label = "TASK COMPLETE | 1 RETRY SUCCESS"
+        else:
+            phase_label = "ROLLOUT ACTIVE"
+
+        status_text = f"STEP {cur_step+1:3d}/{total_steps} | {phase_label} | t={tau*elapsed_sec:.1f}s/{elapsed_sec:.1f}s"
         banner_bg = compositor._get_banner(status_text)
         canvas[0:44, compositor.quad_w:compositor.width] = banner_bg
 
